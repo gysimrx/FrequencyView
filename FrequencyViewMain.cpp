@@ -16,8 +16,15 @@
 #include "ImportSessionPanel.h"
 #include "ImportSessionThread.h"
 #include "SessionEvent.h"
-#include "SpectrumAnalyzerPanel.h"
 
+
+#ifdef HAS_NETWORK_ANALYZER
+    #include "NetworkAnalyzerPanel.h"
+#endif
+
+#ifdef HAS_SPECTRUM_ANALYZER
+    #include "SpectrumAnalyzerPanel.h"
+#endif
 namespace{
     static const int ID_ABOUT        = wxNewId();
     static const int ID_CONNECT      = wxNewId();
@@ -124,8 +131,9 @@ void FrequencyViewFrame::initSpectrumAnalyzer(std::shared_ptr<sigrok::Session> s
 #ifdef HAS_NETWORK_ANALYZER
 void FrequencyViewFrame::initNetworkAnalyzer(std::shared_ptr<sigrok::Session> session, std::shared_ptr<sigrok::HardwareDevice> device)
 {
-    device_->config_set(sigrok::ConfigKey::SPAN,                  Glib::Variant<gdouble>::create(span));
-    device_->config_set(sigrok::ConfigKey::BAND_CENTER_FREQUENCY, Glib::Variant<gdouble>::create(frequency));
+    NetworkAnalyzerPanel *pnl = new NetworkAnalyzerPanel(auiNotebook_, this, wxNewId(),  session, device);
+    auiNotebook_->AddPage(pnl, "data from Device", true);
+
 }
 #endif
 
@@ -268,5 +276,4 @@ void FrequencyViewFrame::onSessionEvent(SessionEvent &event)
     if (wnd)
         wnd->GetEventHandler()->AddPendingEvent(event);
 }
-
 

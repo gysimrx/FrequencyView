@@ -13,8 +13,9 @@
 				<Option compiler="gcc" />
 				<Option projectLinkerOptionsRelation="2" />
 				<Compiler>
+					<Add option="-std=c11" />
 					<Add option="-g" />
-					<Add option="-DHAS_SPECTRUM_ANALYZER" />
+					<Add option="-DHAS_NETWORK_ANALYZER" />
 				</Compiler>
 				<Linker>
 					<Add option="`pkg-config --libs fftw3`" />
@@ -28,7 +29,7 @@
 				<Option projectLinkerOptionsRelation="2" />
 				<Compiler>
 					<Add option="-O2" />
-					<Add option="-DHAS_SPECTRUM_ANALYZER" />
+					<Add option="-DHAS_NETWORK_ANALYZER" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -118,6 +119,10 @@
 			<Option target="Debug" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="FrequencyViewApp.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="FrequencyViewMain.cpp">
 			<Option target="Debug" />
 			<Option target="Release" />
@@ -175,6 +180,8 @@
 			<Option target="Debug" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="NetworkAnalyzerPanel.cpp" />
+		<Unit filename="NetworkAnalyzerPanel.h" />
 		<Unit filename="SessionEvent.cpp">
 			<Option target="Debug" />
 			<Option target="Release" />
@@ -204,10 +211,6 @@
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="SpectrumFeeder.h">
-			<Option target="Debug" />
-			<Option target="Release" />
-		</Unit>
-		<Unit filename="FrequencyViewApp.h">
 			<Option target="Debug" />
 			<Option target="Release" />
 		</Unit>
