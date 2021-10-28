@@ -58,6 +58,16 @@ SpectrumAnalyzerPanel::SpectrumAnalyzerPanel(wxWindow *parent, wxEvtHandler *evt
     device->config_set(sigrok::ConfigKey::RESOLUTION_BANDWIDTH,  Glib::Variant<uint64_t>::create(rbw_));
     ref_level_ = static_cast<double>(Glib::VariantBase::cast_dynamic<Glib::Variant<gdouble>>(device->config_get(sigrok::ConfigKey::REF_LEVEL)).get());
 
+    /// demo to send command !!!
+    Glib::ustring cmd = "freq:cent 1500000000";
+    device->config_set(sigrok::ConfigKey::COMMAND_SET, Glib::Variant<Glib::ustring>::create(cmd));
+
+    /// demo to read back !!!
+    Glib::ustring req_cmd = "freq:span?";
+    device->config_set(sigrok::ConfigKey::COMMAND_REQ, Glib::Variant<Glib::ustring>::create(req_cmd));
+    Glib::ustring ans = Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(device->config_get(sigrok::ConfigKey::COMMAND_REQ)).get();
+    wxLogMessage(wxString::Format("received answer from devive: %s", ans.data()));
+
     SpectrumFeeder *df = new SpectrumFeeder(evtHandler, GetId());
     auto feed_callback = [=] (std::shared_ptr<sigrok::Device> device, std::shared_ptr<sigrok::Packet> packet)
     { df->data_feed_callback(device, packet); };
@@ -81,12 +91,12 @@ void SpectrumAnalyzerPanel::initPlotControl()
 {
     plotCtrl_ = new wxPlotCtrl(this, wxID_ANY);
 
-    plotCtrl_->SetXAxisLabel("f [Hz]");
-    plotCtrl_->SetYAxisLabel("P [dBm]");
-    plotCtrl_->SetShowXAxis(true);
-    plotCtrl_->SetShowYAxis(true);
-    plotCtrl_->SetShowXAxisLabel(true);
-    plotCtrl_->SetShowYAxisLabel(true);
+    plotCtrl_->SetBottomAxisLabel("f [Hz]");
+    plotCtrl_->SetLeftAxisLabel("P [dBm]");
+    plotCtrl_->SetShowBottomAxis(true);
+    plotCtrl_->SetShowLeftAxis(true);
+    plotCtrl_->SetShowBottomAxisLabel(true);
+    plotCtrl_->SetShowLeftAxisLabel(true);
     plotCtrl_->SetShowKey(false);
     plotCtrl_->SetShowPlotTitle(false);
     plotCtrl_->SetDrawGrid();
@@ -145,11 +155,10 @@ void SpectrumAnalyzerPanel::OnPlotCtrlEvent(wxPlotCtrlEvent& event)
     }
     else
     {
-         wxLogMessage(wxString::Format(wxT("%s xy(%g %g) CurveIndex %d, IsDataCurve %d DataIndex %d, MouseFn %d\n"),
+         wxLogMessage(wxString::Format(wxT("%s xy(%g %g) CurveIndex %d, DataIndex %d, MouseFn %d\n"),
             "wxPlotCtrlEvent::GetEventName(eventType).c_str()",
             event.GetX(), event.GetY(), event.GetCurveIndex(),
-            (int)event.IsDataCurve(), event.GetCurveDataIndex(),
-            event.GetMouseFunction()));
+            event.GetCurveDataIndex(), event.GetMouseFunction()));
     }
 }
 
