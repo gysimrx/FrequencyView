@@ -14,10 +14,11 @@ public:
     void data_feed_callback(std::shared_ptr<sigrok::Device> device, std::shared_ptr<sigrok::Packet> packet);
 
 protected:
-    void clear_trace();
+    void clear_trace(size_t ch);
 
+    size_t channel;
     unsigned int sweep_points;
-    double *values;
+    double *values[4];
 
     wxEvtHandler *evtHandler_;
     int id_;

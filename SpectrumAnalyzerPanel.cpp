@@ -55,18 +55,20 @@ SpectrumAnalyzerPanel::SpectrumAnalyzerPanel(wxWindow *parent, wxEvtHandler *evt
 
     device->config_set(sigrok::ConfigKey::SPAN,                  Glib::Variant<gdouble>::create(span_));
     device->config_set(sigrok::ConfigKey::BAND_CENTER_FREQUENCY, Glib::Variant<gdouble>::create(frequency_));
-    device->config_set(sigrok::ConfigKey::RESOLUTION_BANDWIDTH,  Glib::Variant<uint64_t>::create(rbw_));
-    ref_level_ = static_cast<double>(Glib::VariantBase::cast_dynamic<Glib::Variant<gdouble>>(device->config_get(sigrok::ConfigKey::REF_LEVEL)).get());
+    #ifdef HAS_SPECTRUM_ANALYZER
+        device->config_set(sigrok::ConfigKey::RESOLUTION_BANDWIDTH,  Glib::Variant<uint64_t>::create(rbw_));
+        ref_level_ = static_cast<double>(Glib::VariantBase::cast_dynamic<Glib::Variant<gdouble>>(device->config_get(sigrok::ConfigKey::REF_LEVEL)).get());
 
-    /// demo to send command !!!
-    Glib::ustring cmd = "freq:cent 1500000000";
-    device->config_set(sigrok::ConfigKey::COMMAND_SET, Glib::Variant<Glib::ustring>::create(cmd));
+        /// demo to send command !!!
+        Glib::ustring cmd = "freq:cent 1500000000";
+        device->config_set(sigrok::ConfigKey::COMMAND_SET, Glib::Variant<Glib::ustring>::create(cmd));
 
-    /// demo to read back !!!
-    Glib::ustring req_cmd = "freq:span?";
-    device->config_set(sigrok::ConfigKey::COMMAND_REQ, Glib::Variant<Glib::ustring>::create(req_cmd));
-    Glib::ustring ans = Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(device->config_get(sigrok::ConfigKey::COMMAND_REQ)).get();
-    wxLogMessage(wxString::Format("received answer from devive: %s", ans.data()));
+        /// demo to read back !!!
+        Glib::ustring req_cmd = "freq:span?";
+        device->config_set(sigrok::ConfigKey::COMMAND_REQ, Glib::Variant<Glib::ustring>::create(req_cmd));
+        Glib::ustring ans = Glib::VarianstBase::cast_dynamic<Glib::Variant<Glib::ustring>>(device->config_get(sigrok::ConfigKey::COMMAND_REQ)).get();
+        wxLogMessage(wxString::Format("received answer from devive: %s", ans.data()));
+    #endif
 
     SpectrumFeeder *df = new SpectrumFeeder(evtHandler, GetId());
     auto feed_callback = [=] (std::shared_ptr<sigrok::Device> device, std::shared_ptr<sigrok::Packet> packet)
@@ -174,7 +176,7 @@ void SpectrumAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
     size_t *lengths;
     double **data;
     evt.GetData(&data, &lengths, &channels);
-    if (channels != 1 )
+    if (channels != 1)
     {
         delete [] lengths;
         if (data)

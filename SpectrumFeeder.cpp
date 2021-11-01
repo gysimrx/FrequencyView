@@ -4,8 +4,8 @@
 using namespace std;
 
 SpectrumFeeder::SpectrumFeeder(wxEvtHandler *handler, int id):
-    sweep_points(0),
-    values(nullptr),
+    sweep_points{0},
+    values{nullptr, nullptr, nullptr, nullptr},
     evtHandler_(handler),
     id_(id)
 {}
@@ -15,6 +15,7 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
     if(packet->type()->id() == SR_DF_FRAME_BEGIN)
     {
         sweep_points = 0;
+        channel = 0;
     }
     else if(packet->type()->id() == SR_DF_ANALOG)
     {
@@ -28,36 +29,36 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
         try {unit = analogPayload->unit();}
         catch (...) {unit = sigrok::Unit::DECIBEL_MW;}
 
-        if (mq == sigrok::Quantity::POWER)
+        if (mq == sigrok::Quantity::N_PORT_PARAMETER)
         {
-            if (unit != sigrok::Unit::DECIBEL_MW)
+            if (unit != sigrok::Unit::UNITLESS)
                 return;
-            if (sweep_points)
-                clear_trace();
             sweep_points = analogPayload->num_samples();
-            values = new double[sweep_points];
-            if (!values)
+            values[channel] = new double[sweep_points];
+            if (!values[channel])
                 sweep_points = 0;
             else
-                memcpy(values, analogPayload->data_pointer(), sweep_points * sizeof(double));
+                memcpy(values[channel], analogPayload->data_pointer(), sweep_points * sizeof(double));
+            ++channel;
+
         }
     }
     else if(packet->type()->id() == SR_DF_FRAME_END)
     {
         if (sweep_points == 0)
         {
-            clear_trace();
+            clear_trace(0);
             return;
         }
-        double **pdata = new double*[1];
-        size_t *pSweepPoints = new size_t[1];
+        double **pdata = new double*[4];
+        size_t *pSweepPoints = new size_t[4];
         if (pdata && pSweepPoints)
         {
-            pdata[0] = values;
+            pdata[0] = values[0];
             pSweepPoints[0] = sweep_points;
 
             SessionEvent *evt = new SessionEvent(wxEVT_SESSION_UPDATE, id_);
-            evt->SetData(pdata, pSweepPoints, 1);
+            evt->SetData(pdata, pSweepPoints, channel);
             wxQueueEvent(evtHandler_, evt);
         }
         else
@@ -67,7 +68,7 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
         }
 
         sweep_points = 0;
-        values = nullptr;
+        values[0] = nullptr;
     }
     else if(packet->type()->id() == SR_DF_END)
     {
@@ -75,10 +76,9 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
     }
 }
 
-void SpectrumFeeder::clear_trace()
+void SpectrumFeeder::clear_trace(size_t ch)
 {
-    if (values)
-        delete[] values;
-    values = nullptr;
-    sweep_points = 0;
+    if (values[ch])
+        delete[] values[ch];
+    values[ch] = nullptr;
 }

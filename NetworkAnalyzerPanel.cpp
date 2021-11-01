@@ -83,14 +83,14 @@ NetworkAnalyzerPanel::~NetworkAnalyzerPanel()
 
 void NetworkAnalyzerPanel::initPlotControl()
 {
-    plotCtrl_ = new wxPlotCtrl(this, wxID_ANY);
+    plotCtrl_ = new wxPlotCtrl(this, wxID_ANY, wxPlotCtrl::GridType::SmithChart);
 
-    plotCtrl_->SetXAxisLabel("f [Hz]");
-    plotCtrl_->SetYAxisLabel("P [dBm]");
-    plotCtrl_->SetShowXAxis(true);
-    plotCtrl_->SetShowYAxis(true);
-    plotCtrl_->SetShowXAxisLabel(true);
-    plotCtrl_->SetShowYAxisLabel(true);
+    plotCtrl_->SetBottomAxisLabel("f [Hz]");
+    plotCtrl_->SetLeftAxisLabel("a [dBfs]");
+    plotCtrl_->SetShowBottomAxis(true);
+    plotCtrl_->SetShowLeftAxis(true);
+    plotCtrl_->SetShowBottomAxisLabel(true);
+    plotCtrl_->SetShowLeftAxisLabel(true);
     plotCtrl_->SetShowKey(false);
     plotCtrl_->SetShowPlotTitle(false);
     plotCtrl_->SetDrawGrid();
@@ -152,8 +152,7 @@ void NetworkAnalyzerPanel::OnPlotCtrlEvent(wxPlotCtrlEvent& event)
          wxLogMessage(wxString::Format(wxT("%s xy(%g %g) CurveIndex %d, IsDataCurve %d DataIndex %d, MouseFn %d\n"),
             "wxPlotCtrlEvent::GetEventName(eventType).c_str()",
             event.GetX(), event.GetY(), event.GetCurveIndex(),
-            (int)event.IsDataCurve(), event.GetCurveDataIndex(),
-            event.GetMouseFunction()));
+            event.GetCurveDataIndex(), event.GetMouseFunction()));
     }
 }
 
@@ -166,12 +165,23 @@ void NetworkAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
         return;
     not_taken = 0;
 
+    wxTextFile file("/home/marx/sigrok/FrequencyView/DebugFreqView");
+    if( file.Exists() )
+      file.Open();
+    else
+      file.Create();
+    file.Clear();
+    file.AddLine("onSessionUpdate");
+    file.Write();
+    file.Close();
+
     size_t channels;
     size_t *lengths;
     double **data;
     evt.GetData(&data, &lengths, &channels);
     if (channels != 1 )
     {
+        wxLogMessage("Channel Mismatch check SpectrumFeeder and Protocol");
         delete [] lengths;
         if (data)
             for (size_t i = 0 ; i < channels; ++i)
@@ -179,46 +189,72 @@ void NetworkAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
         delete [] data;
         return;
     }
-    size_t len = lengths[0]/4;
+
+    size_t totallen = lengths[0];        // = 201 SweepPoints * 2 values per pnt (R;I) * 4 S-Param Traces = Total 1608
+    size_t len = totallen/4/2;
+    size_t itlen = totallen/4;
+    wxLogMessage(std::to_string(totallen).c_str());
+    file.Open();
+    file.AddLine(std::to_string(totallen).c_str());
+    file.Write();
+    file.Close();
+
+    double *R1 = new double[len];
+    double *R2 = new double[len];
+    double *R3 = new double[len];
+    double *R4 = new double[len];
+
+    double *I1 = new double[len];
+    double *I2 = new double[len];
+    double *I3 = new double[len];
+    double *I4 = new double[len];
 
     double *data_array = *data;
-    double *p  = &(data_array)[0];
-    double *p2 = new double[len];
-    double *p3 = new double[len];
-    double *p4 = new double[len];
-    memcpy(p2, data_array +     len, len*sizeof(double));
-    memcpy(p3, data_array + 2 * len, len*sizeof(double));
-    memcpy(p4, data_array + 3 * len, len*sizeof(double));
+    double *p1  = &(data_array)[0];
+    data_array = data[1];
+    double *p2  = &(data_array)[1];
+    data_array = data[2];
+    double *p3  = &(data_array)[2];
+    data_array = data[3];
+    double *p4  = &(data_array)[3];
 
+    if(channels >= 1)
+    {
+        for (size_t i = 0 ; i < itlen ; ++i)
+        {
+            if(i % 2 )
+            {
+                I1[i/2] = *(p1+i);
+                I2[i/2] = *(p1+i+itlen);
+                I3[i/2] = *(p1+i+itlen*2);
+                I4[i/2] = *(p1+i+itlen*3);
 
-    double *f  = new double[len];
-    double *f2 = new double[len];
-    double *f3 = new double[len];
-    double *f4 = new double[len];
+            }
+            else
+            {
+                R1[i/2] = *(p1+i);
+                R2[i/2] = *(p1+i+itlen);
+                R3[i/2] = *(p1+i+itlen*2);
+                R4[i/2] = *(p1+i+itlen*3);
 
-    for (size_t i = 0 ; i < len ; ++i)
-        f[i] = frequency_ - span_ / 2.0 + span_/2.0/len + i*span_/len;
+            }
+        }
+    }
 
-    wxLogMessage(std::to_string(len).c_str());
-    memcpy(f2,f,len*sizeof(double));
-    memcpy(f3,f,len*sizeof(double));
-    memcpy(f4,f,len*sizeof(double));
+    wxPlotData *pltData1 = new wxPlotData(I1, R1, len);
+    wxPlotData *pltData2 = new wxPlotData(R2, I2, len);
+    wxPlotData *pltData3 = new wxPlotData(I3, R3, len);
+    wxPlotData *pltData4 = new wxPlotData(I4, R4, len);
 
-    wxPlotData *pltData  = new wxPlotData(f , p , len);
-    wxPlotData *pltData2 = new wxPlotData(f2, p2, len);
-    wxPlotData *pltData3 = new wxPlotData(f3, p3, len);
-    wxPlotData *pltData4 = new wxPlotData(f4, p4, len);
-
-    pltData->SetBoundingRect(wxRect2DDouble(f[0], ref_level_-50.0, f[len-1]-f[0], 50.0));
+    pltData1->SetBoundingRect(wxRect2DDouble(I1[0], ref_level_-2.0, I1[len-1]-I1[0], 4.0));
 
     if (plotCtrl_->GetCurveCount())
         plotCtrl_->DeleteCurve(-1, false);
 
-
-    plotCtrl_->AddCurve(pltData);
-    plotCtrl_->AddCurve(pltData2);
-    plotCtrl_->AddCurve(pltData3);
-    plotCtrl_->AddCurve(pltData4);
+    plotCtrl_->AddCurve(pltData1); // S21
+    plotCtrl_->AddCurve(pltData2); // S11
+    plotCtrl_->AddCurve(pltData3); // S22
+    plotCtrl_->AddCurve(pltData4); // S12
 
     /** add start, stop, center and sweep-pts to static text field below plot window */
 }
