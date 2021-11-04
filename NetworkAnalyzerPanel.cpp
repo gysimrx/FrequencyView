@@ -165,21 +165,11 @@ void NetworkAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
         return;
     not_taken = 0;
 
-    wxTextFile file("/home/marx/sigrok/FrequencyView/DebugFreqView");
-    if( file.Exists() )
-      file.Open();
-    else
-      file.Create();
-    file.Clear();
-    file.AddLine("onSessionUpdate");
-    file.Write();
-    file.Close();
-
     size_t channels;
     size_t *lengths;
     double **data;
     evt.GetData(&data, &lengths, &channels);
-    if (channels != 1 )
+    if (channels != 4 )
     {
         wxLogMessage("Channel Mismatch check SpectrumFeeder and Protocol");
         delete [] lengths;
@@ -190,14 +180,9 @@ void NetworkAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
         return;
     }
 
-    size_t totallen = lengths[0];        // = 201 SweepPoints * 2 values per pnt (R;I) * 4 S-Param Traces = Total 1608
-    size_t len = totallen/4/2;
-    size_t itlen = totallen/4;
+    size_t totallen = lengths[0];        // = 201 SweepPoints * 2 values per pnt (R;I) = 402
+    size_t len = totallen/2;
     wxLogMessage(std::to_string(totallen).c_str());
-    file.Open();
-    file.AddLine(std::to_string(totallen).c_str());
-    file.Write();
-    file.Close();
 
     double *R1 = new double[len];
     double *R2 = new double[len];
@@ -209,40 +194,35 @@ void NetworkAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
     double *I3 = new double[len];
     double *I4 = new double[len];
 
-    double *data_array = *data;
-    double *p1  = &(data_array)[0];
-    data_array = data[1];
-    double *p2  = &(data_array)[1];
-    data_array = data[2];
-    double *p3  = &(data_array)[2];
-    data_array = data[3];
-    double *p4  = &(data_array)[3];
+    double *p1 = data[0];
+    double *p2 = data[1];
+    double *p3 = data[2];
+    double *p4 = data[3];
 
     if(channels >= 1)
     {
-        for (size_t i = 0 ; i < itlen ; ++i)
+        for (size_t i = 0 ; i < totallen ; ++i)
         {
             if(i % 2 )
             {
                 I1[i/2] = *(p1+i);
-                I2[i/2] = *(p1+i+itlen);
-                I3[i/2] = *(p1+i+itlen*2);
-                I4[i/2] = *(p1+i+itlen*3);
-
+                I2[i/2] = *(p2+i);
+                I3[i/2] = *(p3+i);
+                I4[i/2] = *(p4+i);
             }
             else
             {
                 R1[i/2] = *(p1+i);
-                R2[i/2] = *(p1+i+itlen);
-                R3[i/2] = *(p1+i+itlen*2);
-                R4[i/2] = *(p1+i+itlen*3);
+                R2[i/2] = *(p2+i);
+                R3[i/2] = *(p3+i);
+                R4[i/2] = *(p4+i);
 
             }
         }
     }
 
     wxPlotData *pltData1 = new wxPlotData(I1, R1, len);
-    wxPlotData *pltData2 = new wxPlotData(R2, I2, len);
+    wxPlotData *pltData2 = new wxPlotData(I2, R2, len);
     wxPlotData *pltData3 = new wxPlotData(I3, R3, len);
     wxPlotData *pltData4 = new wxPlotData(I4, R4, len);
 
