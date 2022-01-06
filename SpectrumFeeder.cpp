@@ -47,24 +47,20 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
     {
         if (sweep_points == 0)
         {
-            clear_trace(0);
-            clear_trace(1);
-            clear_trace(2);
-            clear_trace(3);
+            for(int i = 0; i < channel; i++)
+                clear_trace(i);
             return;
         }
         double **pdata = new double*[4];
         size_t *pSweepPoints = new size_t[4];
         if (pdata && pSweepPoints)
         {
-            pdata[0] = values[0];
-            pSweepPoints[0] = sweep_points;
-            pdata[1] = values[1];
-            pSweepPoints[1] = sweep_points;
-            pdata[2] = values[2];
-            pSweepPoints[2] = sweep_points;
-            pdata[3] = values[3];
-            pSweepPoints[3] = sweep_points;
+
+            for(int i = 0; i < channel; i++)
+            {
+                pdata[i] = values[i];
+                pSweepPoints[i] = sweep_points;
+            }
 
             SessionEvent *evt = new SessionEvent(wxEVT_SESSION_UPDATE, id_);
             evt->SetData(pdata, pSweepPoints, channel);
@@ -77,10 +73,8 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
         }
 
         sweep_points = 0;
-        values[0] = nullptr;
-        values[1] = nullptr;
-        values[2] = nullptr;
-        values[3] = nullptr;
+        for(int i = 0; i < channel; i++)
+            values[i] = nullptr;
     }
     else if(packet->type()->id() == SR_DF_END)
     {

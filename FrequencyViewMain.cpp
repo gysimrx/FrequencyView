@@ -68,7 +68,7 @@ FrequencyViewFrame::FrequencyViewFrame(wxFrame *frame, const wxString& title):
     speciMenu->Append(ID_CONNECT, _("&Connect"), _("Connect to spectrum Analyzer"));
     mbar->Append(speciMenu, _("Analyzer"));
 
-    wxMenu* helpMenu = new wxMenu("");
+    wxMenu *helpMenu = new wxMenu("");
     helpMenu->Append(ID_ABOUT, _("&About\tF1"), _("Show info about this application"));
     mbar->Append(helpMenu, _("&Help"));
 
@@ -133,7 +133,6 @@ void FrequencyViewFrame::initNetworkAnalyzer(std::shared_ptr<sigrok::Session> se
 {
     NetworkAnalyzerPanel *pnl = new NetworkAnalyzerPanel(auiNotebook_, this, wxNewId(),  session, device);
     auiNotebook_->AddPage(pnl, "data from Device", true);
-
 }
 #endif
 

@@ -42,8 +42,8 @@ NetworkAnalyzerPanel::NetworkAnalyzerPanel(wxWindow *parent, wxEvtHandler *evtHa
     wxPanel(parent),
     plotCtrl_(nullptr),
     session_(session),
-    frequency_(900000000.0),
-    span_(100000000.0),
+    frequency_(1900000000.0),
+    span_(1500000000.0),
     rbw_(100000)
 {
     initPlotControl();
@@ -52,13 +52,35 @@ NetworkAnalyzerPanel::NetworkAnalyzerPanel(wxWindow *parent, wxEvtHandler *evtHa
     sizer->Add(plotCtrl_, 1, wxEXPAND);
     SetSizerAndFit(sizer);
 
-//    device->config_set(sigrok::ConfigKey::PRESET,                Glib::Variant<bool>::create(true));
-
+    device->config_set(sigrok::ConfigKey::PRESET,                Glib::Variant<bool>::create(true));
     device->config_set(sigrok::ConfigKey::SPAN,                  Glib::Variant<gdouble>::create(span_));
     device->config_set(sigrok::ConfigKey::BAND_CENTER_FREQUENCY, Glib::Variant<gdouble>::create(frequency_));
-//    device->dev_acquisition_start():
-//    device->config_set(sigrok::ConfigKey::RESOLUTION_BANDWIDTH,  Glib::Variant<uint64_t>::create(rbw_));
-//    ref_level_ = static_cast<double>(Glib::VariantBase::cast_dynamic<Glib::Variant<gdouble>>(device->config_get(sigrok::ConfigKey::REF_LEVEL)).get());
+    Glib::ustring sparams = "S22,S21,S12,S11";
+    device->config_set(sigrok::ConfigKey::SPARAMS,               Glib::Variant<Glib::ustring>::create(sparams));
+
+
+    /// demo to send command !!!CALC1:DATA? FDATA
+    Glib::ustring cmd = "freq:cent 1500000000";
+    device->config_set(sigrok::ConfigKey::COMMAND_SET, Glib::Variant<Glib::ustring>::create(cmd));
+
+
+    /// demo to read back !!!
+    Glib::ustring req_cmd = "CONF:TRAC:CAT?";
+    device->config_set(sigrok::ConfigKey::COMMAND_REQ, Glib::Variant<Glib::ustring>::create(req_cmd));
+    Glib::ustring ans = Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(device->config_get(sigrok::ConfigKey::COMMAND_REQ)).get();
+    wxLogMessage(wxString::Format("received answer from device: %s", ans.data()));
+
+    /// get active Traces via SPARAMS protocol Setting!!!
+    Glib::ustring ans2 = Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(device->config_get(sigrok::ConfigKey::SPARAMS)).get();
+    wxLogMessage(wxString::Format("active Traces: %s", ans2.data()));
+    int i = 0;
+    while(i != -1)
+    {
+        i = ans2.find(',');
+        Glib::ustring substring = ans2.substr(0,i);
+        ans2.erase(0,i+1);
+        wxLogMessage(wxString::Format("subsring =  %s", substring.data()));
+    }
 
     SpectrumFeeder *df = new SpectrumFeeder(evtHandler, GetId());
     auto feed_callback = [=] (std::shared_ptr<sigrok::Device> device, std::shared_ptr<sigrok::Packet> packet)
@@ -84,7 +106,6 @@ NetworkAnalyzerPanel::~NetworkAnalyzerPanel()
 void NetworkAnalyzerPanel::initPlotControl()
 {
     plotCtrl_ = new wxPlotCtrl(this, wxID_ANY, wxPlotCtrl::GridType::SmithChart);
-
     plotCtrl_->SetBottomAxisLabel("f [Hz]");
     plotCtrl_->SetLeftAxisLabel("a [dBfs]");
     plotCtrl_->SetShowBottomAxis(true);
@@ -169,73 +190,58 @@ void NetworkAnalyzerPanel::OnSessionUpdate(SessionEvent &evt)
     size_t *lengths;
     double **data;
     evt.GetData(&data, &lengths, &channels);
-    if (channels != 4 )
-    {
-        wxLogMessage("Channel Mismatch check SpectrumFeeder and Protocol");
-        delete [] lengths;
-        if (data)
-            for (size_t i = 0 ; i < channels; ++i)
-                delete [] (data[i]);
-        delete [] data;
-        return;
-    }
+//    if (channels < 4 )
+//    {
+//        wxLogMessage("Channel Mismatch check SpectrumFeeder and Protocol");
+//        delete [] lengths;
+//        if (data)
+//            for (size_t i = 0 ; i < channels; ++i)
+//                delete [] (data[i]);
+//        delete [] data;
+//        return;
+//    }
 
     size_t totallen = lengths[0];        // = 201 SweepPoints * 2 values per pnt (R;I) = 402
     size_t len = totallen/2;
-    wxLogMessage(std::to_string(totallen).c_str());
 
-    double *R1 = new double[len];
-    double *R2 = new double[len];
-    double *R3 = new double[len];
-    double *R4 = new double[len];
+    double *p[channels];
+    for (size_t i = 0; i < channels; i++)
+        p[i] = data[i];
 
-    double *I1 = new double[len];
-    double *I2 = new double[len];
-    double *I3 = new double[len];
-    double *I4 = new double[len];
+    double** I = new double*[channels];
+    for (size_t i = 0; i < channels; i++)
+        I[i] = new double[len];
 
-    double *p1 = data[0];
-    double *p2 = data[1];
-    double *p3 = data[2];
-    double *p4 = data[3];
+    double** R = new double*[channels];
+    for (size_t i = 0; i < channels; i++)
+        R[i] = new double[len];
 
-    if(channels >= 1)
+    for (size_t i = 0 ; i < totallen ; ++i)
     {
-        for (size_t i = 0 ; i < totallen ; ++i)
+        if(i % 2 )
         {
-            if(i % 2 )
-            {
-                I1[i/2] = *(p1+i);
-                I2[i/2] = *(p2+i);
-                I3[i/2] = *(p3+i);
-                I4[i/2] = *(p4+i);
-            }
-            else
-            {
-                R1[i/2] = *(p1+i);
-                R2[i/2] = *(p2+i);
-                R3[i/2] = *(p3+i);
-                R4[i/2] = *(p4+i);
-
-            }
+            for(size_t channel = 0; channel < channels; channel++)
+                I[channel][i/2] = *(p[channel]+i);
+        }
+        else
+        {
+            for(size_t channel = 0; channel < channels; channel++)
+                R[channel][i/2] = *(p[channel]+i);
         }
     }
 
-    wxPlotData *pltData1 = new wxPlotData(I1, R1, len);
-    wxPlotData *pltData2 = new wxPlotData(I2, R2, len);
-    wxPlotData *pltData3 = new wxPlotData(I3, R3, len);
-    wxPlotData *pltData4 = new wxPlotData(I4, R4, len);
-
-    pltData1->SetBoundingRect(wxRect2DDouble(I1[0], ref_level_-2.0, I1[len-1]-I1[0], 4.0));
+    wxPlotData* pltData[channels];
+    for (size_t i = 0; i<channels; i++)
+        pltData[i] = new wxPlotData(R[i], I[i], len);
 
     if (plotCtrl_->GetCurveCount())
         plotCtrl_->DeleteCurve(-1, false);
 
-    plotCtrl_->AddCurve(pltData1); // S21
-    plotCtrl_->AddCurve(pltData2); // S11
-    plotCtrl_->AddCurve(pltData3); // S22
-    plotCtrl_->AddCurve(pltData4); // S12
+    for (size_t i = 0; i<channels; i++)
+        plotCtrl_->AddCurve(pltData[i]);
 
+    delete R;
+    delete I;
     /** add start, stop, center and sweep-pts to static text field below plot window */
 }
 
