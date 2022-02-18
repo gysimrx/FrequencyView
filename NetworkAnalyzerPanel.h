@@ -5,6 +5,10 @@
 
 #include <wx/panel.h>
 
+#include "ActiveTraces.h"
+#include <wx/log.h>
+#include "wx/plotctrl/plotctrl.h"
+
 #include <libsigrokcxx/libsigrokcxx.hpp>
 
 class wxPlotCtrl;
@@ -16,7 +20,8 @@ class NetworkAnalyzerPanel : public wxPanel
 public:
     NetworkAnalyzerPanel(wxWindow *parent, wxEvtHandler *evtHandler, wxWindowID winid,
                     std::shared_ptr<sigrok::Session> session,
-                    std::shared_ptr<sigrok::HardwareDevice> device);
+                    std::shared_ptr<sigrok::HardwareDevice> device,
+                    ActiveTraces* activetraces);
     ~NetworkAnalyzerPanel();
 private:
     wxPlotCtrl *plotCtrl_;
@@ -26,8 +31,9 @@ private:
     double span_;
     uint64_t rbw_;
     double ref_level_;
+    ActiveTraces* traces_;
 
-    void initPlotControl();
+    void initPlotControl(wxPlotCtrl::GridType gridtype);
 
     void OnPlot(wxCommandEvent &event);
     void OnUpdatePlot(wxUpdateUIEvent &event);

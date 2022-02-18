@@ -47,7 +47,7 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
     {
         if (sweep_points == 0)
         {
-            for(int i = 0; i < channel; i++)
+            for(size_t i = 0; i < channel; i++)
                 clear_trace(i);
             return;
         }
@@ -56,7 +56,7 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
         if (pdata && pSweepPoints)
         {
 
-            for(int i = 0; i < channel; i++)
+            for(size_t i = 0; i < channel; i++)
             {
                 pdata[i] = values[i];
                 pSweepPoints[i] = sweep_points;
@@ -73,7 +73,7 @@ void SpectrumFeeder::data_feed_callback(shared_ptr<sigrok::Device> device, share
         }
 
         sweep_points = 0;
-        for(int i = 0; i < channel; i++)
+        for(size_t i = 0; i < channel; i++)
             values[i] = nullptr;
     }
     else if(packet->type()->id() == SR_DF_END)

@@ -75,6 +75,14 @@
 			<Add option="`pkg-config glibmm-2.4 --libs`" />
 			<Add option="`pkg-config libsigrokcxx --libs`" />
 		</Linker>
+		<Unit filename="ActiveTraces.cpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="ActiveTraces.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="CenterFreqDialog.cpp">
 			<Option target="Debug" />
 			<Option target="Release" />

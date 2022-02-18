@@ -51,7 +51,7 @@ SpectrumAnalyzerPanel::SpectrumAnalyzerPanel(wxWindow *parent, wxEvtHandler *evt
     sizer->Add(plotCtrl_, 1, wxEXPAND);
     SetSizerAndFit(sizer);
 
-    device->config_set(sigrok::ConfigKey::PRESET,                Glib::Variant<bool>::create(true));
+    device->config_set(sigrok::ConfigKey::RESET,                 Glib::Variant<bool>::create(true));
 
     device->config_set(sigrok::ConfigKey::SPAN,                  Glib::Variant<gdouble>::create(span_));
     device->config_set(sigrok::ConfigKey::BAND_CENTER_FREQUENCY, Glib::Variant<gdouble>::create(frequency_));

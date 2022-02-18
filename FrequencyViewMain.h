@@ -8,8 +8,11 @@
 
 #include <wx/frame.h>
 #include <wx/timer.h>
+#include <wx/menu.h>
 
 #include <wx/aui/aui.h>
+
+#include "ActiveTraces.h"
 
 class wxTextCtrl;
 class SessionEvent;
@@ -45,6 +48,15 @@ private:
     void onConnect(wxCommandEvent &event);
     void onImport(wxCommandEvent &event);
     void onSessionEvent(SessionEvent&);
+    void OnAuiNotebook(wxAuiNotebookEvent &event);
+    void OnPopupClick(wxCommandEvent &evt);
+
+    ActiveTraces* Traces1 = new ActiveTraces();
+    ActiveTraces* Traces2 = new ActiveTraces();
+    wxMenu *TabPopupMenu1 = new wxMenu("");
+    wxMenu *TabPopupMenu2 = new wxMenu("");
+    wxMenu *TraceSelection1 = new wxMenu("");
+    wxMenu *TraceSelection2 = new wxMenu("");
 
     void populateFileLoaderMenu(wxMenu *load);
     wxString generateWildcardString(const std::string &description, const std::vector<std::string> &exts);

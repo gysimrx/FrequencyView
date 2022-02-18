@@ -40,6 +40,8 @@ BEGIN_EVENT_TABLE(FrequencyViewFrame, wxFrame)
     EVT_MENU           (ID_CONNECT, FrequencyViewFrame::onConnect)
     EVT_SESSION_UPDATE (wxID_ANY,   FrequencyViewFrame::onSessionEvent)
     EVT_SESSION_ENDED  (wxID_ANY,   FrequencyViewFrame::onSessionEvent)
+
+    EVT_AUINOTEBOOK_TAB_RIGHT_DOWN(wxID_ANY, FrequencyViewFrame::OnAuiNotebook)
 END_EVENT_TABLE()
 
 FrequencyViewFrame::FrequencyViewFrame(wxFrame *frame, const wxString& title):
@@ -131,8 +133,15 @@ void FrequencyViewFrame::initSpectrumAnalyzer(std::shared_ptr<sigrok::Session> s
 #ifdef HAS_NETWORK_ANALYZER
 void FrequencyViewFrame::initNetworkAnalyzer(std::shared_ptr<sigrok::Session> session, std::shared_ptr<sigrok::HardwareDevice> device)
 {
-    NetworkAnalyzerPanel *pnl = new NetworkAnalyzerPanel(auiNotebook_, this, wxNewId(),  session, device);
-    auiNotebook_->AddPage(pnl, "data from Device", true);
+
+    NetworkAnalyzerPanel *pnl = new NetworkAnalyzerPanel(auiNotebook_, this, wxNewId(),  session, device, Traces1);
+    NetworkAnalyzerPanel *pnl2 = new NetworkAnalyzerPanel(auiNotebook_, this, wxNewId(), session, device, Traces2);
+
+    auiNotebook_->AddPage(pnl,  "panel 1", true);
+    auiNotebook_->AddPage(pnl2, "panel 2", true);
+
+    auiNotebook_->Split(1,wxRIGHT);
+
 }
 #endif
 
@@ -274,5 +283,50 @@ void FrequencyViewFrame::onSessionEvent(SessionEvent &event)
     wxWindow *wnd = FindWindowById(event.GetId());
     if (wnd)
         wnd->GetEventHandler()->AddPendingEvent(event);
+}
+
+void FrequencyViewFrame::OnPopupClick(wxCommandEvent &evt)
+{
+    int id = evt.GetId();
+    wxMenuItem *p1 = TraceSelection1->FindItem(id);
+    wxMenuItem *p2 = TraceSelection2->FindItem(id);
+
+    wxMenu       *TraceSelection  = p1 ? TraceSelection1 : TraceSelection2;
+    wxMenuItem   *Item   = p1 ? p1 : p2;
+    ActiveTraces *Traces = p1 ? Traces1 : Traces2;
+
+    if(TraceSelection->FindItem(id)->IsChecked())
+        Traces->ui.at(Item->GetItemLabel()) = true;
+    else
+        Traces->ui.at(Item->GetItemLabel()) = false;
+}
+
+
+void FrequencyViewFrame::OnAuiNotebook(wxAuiNotebookEvent &event)
+{
+    event.Skip();
+    wxEventType eventType = event.GetEventType();
+    if (eventType == wxEVT_AUINOTEBOOK_TAB_RIGHT_DOWN)
+    {
+
+        if(TraceSelection1->GetMenuItemCount() == 0)
+        {
+            for(auto& it: Traces1->ui)
+            {
+                TraceSelection1->AppendCheckItem(wxNewId(), it.first)->Check();
+                TraceSelection2->AppendCheckItem(wxNewId(), it.first)->Check();
+            }
+            TraceSelection1->Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(FrequencyViewFrame::OnPopupClick), NULL, this);
+            TraceSelection2->Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(FrequencyViewFrame::OnPopupClick), NULL, this);
+
+            TabPopupMenu1->AppendSubMenu(TraceSelection1, "Select Traces");
+            TabPopupMenu2->AppendSubMenu(TraceSelection2, "Select Traces");
+        }
+
+        if(event.GetSelection() == 0)
+            PopupMenu(TabPopupMenu1);
+        else if (event.GetSelection() == 1)
+            PopupMenu(TabPopupMenu2);
+    }
 }
 
